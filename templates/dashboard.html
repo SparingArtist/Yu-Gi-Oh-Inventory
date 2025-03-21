@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <form method="POST" action="{{ url_for('add_card') }}">
+        <input type="text" name="name" placeholder="Card Name" required>
+        <select name="category">
+            <option value="Monster">Monster</option>
+            <option value="Spell">Spell</option>
+            <option value="Trap">Trap</option>
+        </select>
+        <input type="text" name="typing" placeholder="Typing (if applicable)">
+        <input type="number" name="quantity" placeholder="Quantity" required>
+        <button type="submit">Add Card</button>
+    </form>
+
+    <h2>Current Inventory</h2>
+    <ul>
+        {% for card in cards %}
+        <li>
+            <img src="{{ card.image_url }}" width="100">
+            {{ card.name }} - {{ card.category }} - Quantity: {{ card.quantity }}
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
