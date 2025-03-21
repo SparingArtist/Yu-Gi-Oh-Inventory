@@ -2,13 +2,20 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import requests
+from flask_migrate import Migrate
 
+# Initialize the Flask app first
 app = Flask(__name__)
+
+# Configure the app
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cards.db'
 app.config['SECRET_KEY'] = 'your_secret_key'
+
+# Initialize the database and migration objects after the app is defined
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+migrate = Migrate(app, db)  # Migrate must come after db initialization
 
 # User Model for Admins
 class User(UserMixin, db.Model):
@@ -106,5 +113,5 @@ def logout():
 
 # Run Server
 if __name__ == '__main__':
-    db.create_all()
+    db.create_all()  # Optional: creates the database if it doesn't exist
     app.run(debug=True)
