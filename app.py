@@ -124,5 +124,4 @@ def logout():
 
 # Run Server
 if __name__ == '__main__':
-    db.create_all()  # Optional: creates the database if it doesn't exist
     app.run(debug=True)
