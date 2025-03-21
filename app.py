@@ -4,18 +4,18 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import requests
 from flask_migrate import Migrate
 
-# Initialize the Flask app first
-app = Flask(__name__)
+# Initialize the Flask app
+app = Flask(__name__, template_folder="templates")
 
 # Configure the app
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cards.db'
 app.config['SECRET_KEY'] = 'your_secret_key'
 
-# Initialize the database and migration objects after the app is defined
+# Initialize the database and migration objects
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-migrate = Migrate(app, db)  # Migrate must come after db initialization
+migrate = Migrate(app, db)
 
 # User Model for Admins
 class User(UserMixin, db.Model):
@@ -31,13 +31,14 @@ class Card(db.Model):
     typing = db.Column(db.String(50), nullable=True)  # Monster type
     quantity = db.Column(db.Integer, default=1)
     image_url = db.Column(db.String(255), nullable=True)
+    image_url_small = db.Column(db.String(255), nullable=True)
+    image_url_png = db.Column(db.String(255), nullable=True)  # PNG version of the card
     desc = db.Column(db.Text, nullable=True)
     attack = db.Column(db.Integer, nullable=True)
     defense = db.Column(db.Integer, nullable=True)
     level = db.Column(db.Integer, nullable=True)
     race = db.Column(db.String(50), nullable=True)
     attribute = db.Column(db.String(50), nullable=True)
-    image_url_small = db.Column(db.String(255), nullable=True)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -85,6 +86,15 @@ def add_card():
         data = response.json()
         if 'data' in data and len(data['data']) > 0:
             card_info = data['data'][0]
+
+            # Fetch PNG image URL if available
+            png_image_url = None
+            if 'card_images' in card_info:
+                for image in card_info['card_images']:
+                    if image['image_url'].endswith('.png'):
+                        png_image_url = image['image_url']
+                        break  # Stop once a PNG is found
+
             new_card = Card(
                 name=card_info.get('name', name),
                 category=card_info.get('type', 'Unknown'),
@@ -92,6 +102,7 @@ def add_card():
                 quantity=quantity,
                 image_url=card_info['card_images'][0]['image_url'] if 'card_images' in card_info else None,
                 image_url_small=card_info['card_images'][0]['image_url_small'] if 'card_images' in card_info else None,
+                image_url_png=png_image_url,
                 desc=card_info.get('desc', ''),
                 attack=card_info.get('atk'),
                 defense=card_info.get('def'),

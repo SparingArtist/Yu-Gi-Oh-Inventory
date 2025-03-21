@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Yu-Gi-Oh! Inventory</title>
+</head>
+<body>
+    <h1>Yu-Gi-Oh! Card List</h1>
+    <input type="text" id="search" placeholder="Search Card">
+    <ul id="cardList">
+        {% for card in cards %}
+        <li>
+            <h3>{{ card.name }} - {{ card.category }}</h3>
+            <p><strong>Type:</strong> {{ card.typing }}</p>
+            <p><strong>Quantity:</strong> {{ card.quantity }}</p>
+            <p><strong>Description:</strong> {{ card.desc }}</p>
+            {% if card.attack is not none and card.defense is not none %}
+                <p><strong>ATK / DEF:</strong> {{ card.attack }} / {{ card.defense }}</p>
+            {% endif %}
+            {% if card.level is not none %}
+                <p><strong>Level:</strong> {{ card.level }}</p>
+            {% endif %}
+            {% if card.attribute is not none %}
+                <p><strong>Attribute:</strong> {{ card.attribute }}</p>
+            {% endif %}
+            {% if card.race is not none %}
+                <p><strong>Race:</strong> {{ card.race }}</p>
+            {% endif %}
+
+            <!-- Display images -->
+            {% if card.image_url %}
+                <p><strong>Card Image:</strong></p>
+                <img src="{{ card.image_url }}" width="150">
+            {% endif %}
+
+            {% if card.image_url_png %}
+                <p><strong>PNG Version:</strong></p>
+                <img src="{{ card.image_url_png }}" width="150">
+            {% endif %}
+
+            <img src="{{ card.image_url_small }}" width="50">
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
