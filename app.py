@@ -24,6 +24,13 @@ class Card(db.Model):
     typing = db.Column(db.String(50), nullable=True)  # Monster type
     quantity = db.Column(db.Integer, default=1)
     image_url = db.Column(db.String(255), nullable=True)
+    desc = db.Column(db.Text, nullable=True)
+    attack = db.Column(db.Integer, nullable=True)
+    defense = db.Column(db.Integer, nullable=True)
+    level = db.Column(db.Integer, nullable=True)
+    race = db.Column(db.String(50), nullable=True)
+    attribute = db.Column(db.String(50), nullable=True)
+    image_url_small = db.Column(db.String(255), nullable=True)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -56,27 +63,38 @@ def dashboard():
     cards = Card.query.all()
     return render_template('dashboard.html', cards=cards)
 
-# Add Card to Inventory
+# Add Card to Inventory using YGOPRODeck API
 @app.route('/add_card', methods=['POST'])
 @login_required
 def add_card():
     name = request.form['name']
-    category = request.form['category']
-    typing = request.form.get('typing', '')
     quantity = int(request.form['quantity'])
     
-    # Fetch card image from YGOPRODeck API
-    api_url = f'https://db.ygoprodeck.com/api/v7/cardinfo.php?name={name}'
+    # Fetch card data from YGOPRODeck API
+    api_url = f'https://db.ygoprodeck.com/api/v7/cardinfo.php?name={name.replace(" ", "%20")}'
     response = requests.get(api_url)
-    image_url = None
+    
     if response.status_code == 200:
         data = response.json()
         if 'data' in data and len(data['data']) > 0:
-            image_url = data['data'][0]['card_images'][0]['image_url']
-
-    new_card = Card(name=name, category=category, typing=typing, quantity=quantity, image_url=image_url)
-    db.session.add(new_card)
-    db.session.commit()
+            card_info = data['data'][0]
+            new_card = Card(
+                name=card_info.get('name', name),
+                category=card_info.get('type', 'Unknown'),
+                typing=card_info.get('race', 'N/A'),
+                quantity=quantity,
+                image_url=card_info['card_images'][0]['image_url'] if 'card_images' in card_info else None,
+                image_url_small=card_info['card_images'][0]['image_url_small'] if 'card_images' in card_info else None,
+                desc=card_info.get('desc', ''),
+                attack=card_info.get('atk'),
+                defense=card_info.get('def'),
+                level=card_info.get('level'),
+                race=card_info.get('race'),
+                attribute=card_info.get('attribute')
+            )
+            db.session.add(new_card)
+            db.session.commit()
+    
     return redirect(url_for('dashboard'))
 
 # Logout
