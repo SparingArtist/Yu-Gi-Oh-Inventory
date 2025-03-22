@@ -1,21 +1,20 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import requests
-from flask_migrate import Migrate
+import pandas as pd
+import os
 
-# Initialize the Flask app
+# Initialize Flask app
 app = Flask(__name__, template_folder="templates")
 
 # Configure the app
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cards.db'
 app.config['SECRET_KEY'] = 'your_secret_key'
 
-# Initialize the database and migration objects
+# Initialize the database
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-migrate = Migrate(app, db)
 
 # User Model for Admins
 class User(UserMixin, db.Model):
@@ -31,8 +30,6 @@ class Card(db.Model):
     typing = db.Column(db.String(50), nullable=True)  # Monster type
     quantity = db.Column(db.Integer, default=1)
     image_url = db.Column(db.String(255), nullable=True)
-    image_url_small = db.Column(db.String(255), nullable=True)
-    image_url_png = db.Column(db.String(255), nullable=True)  # PNG version of the card
     desc = db.Column(db.Text, nullable=True)
     attack = db.Column(db.Integer, nullable=True)
     defense = db.Column(db.Integer, nullable=True)
@@ -43,6 +40,41 @@ class Card(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# Function to load cards from Excel file
+def load_cards_from_excel():
+    file_path = "updated_cards.xlsx"
+    
+    if os.path.exists(file_path):
+        df = pd.read_excel(file_path)
+
+        for _, row in df.iterrows():
+            name = row["Name"]
+            
+            # Check if card already exists in database
+            existing_card = Card.query.filter_by(name=name).first()
+            if existing_card:
+                continue  # Skip if already in database
+
+            new_card = Card(
+                name=name,
+                category=row.get("Category", "Unknown"),
+                typing=row.get("Typing", "N/A"),
+                quantity=row.get("Quantity", 1),
+                image_url=row.get("Image URL", None),
+                desc=row.get("Description", ""),
+                attack=row.get("Attack"),
+                defense=row.get("Defense"),
+                level=row.get("Level"),
+                race=row.get("Race"),
+                attribute=row.get("Attribute")
+            )
+            db.session.add(new_card)
+
+        db.session.commit()
+        print("✅ Cards loaded from updated_cards.xlsx")
+    else:
+        print("⚠ Excel file not found. No cards loaded.")
 
 # Home Page (Guest View)
 @app.route('/')
@@ -71,50 +103,6 @@ def dashboard():
     cards = Card.query.all()
     return render_template('dashboard.html', cards=cards)
 
-# Add Card to Inventory using YGOPRODeck API
-@app.route('/add_card', methods=['POST'])
-@login_required
-def add_card():
-    name = request.form['name']
-    quantity = int(request.form['quantity'])
-    
-    # Fetch card data from YGOPRODeck API
-    api_url = f'https://db.ygoprodeck.com/api/v7/cardinfo.php?name={name.replace(" ", "%20")}'
-    response = requests.get(api_url)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if 'data' in data and len(data['data']) > 0:
-            card_info = data['data'][0]
-
-            # Fetch PNG image URL if available
-            png_image_url = None
-            if 'card_images' in card_info:
-                for image in card_info['card_images']:
-                    if image['image_url'].endswith('.png'):
-                        png_image_url = image['image_url']
-                        break  # Stop once a PNG is found
-
-            new_card = Card(
-                name=card_info.get('name', name),
-                category=card_info.get('type', 'Unknown'),
-                typing=card_info.get('race', 'N/A'),
-                quantity=quantity,
-                image_url=card_info['card_images'][0]['image_url'] if 'card_images' in card_info else None,
-                image_url_small=card_info['card_images'][0]['image_url_small'] if 'card_images' in card_info else None,
-                image_url_png=png_image_url,
-                desc=card_info.get('desc', ''),
-                attack=card_info.get('atk'),
-                defense=card_info.get('def'),
-                level=card_info.get('level'),
-                race=card_info.get('race'),
-                attribute=card_info.get('attribute')
-            )
-            db.session.add(new_card)
-            db.session.commit()
-    
-    return redirect(url_for('dashboard'))
-
 # Logout
 @app.route('/logout')
 @login_required
@@ -124,4 +112,7 @@ def logout():
 
 # Run Server
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Ensure database tables exist
+        load_cards_from_excel()  # Load cards from Excel on startup
     app.run(debug=True)
