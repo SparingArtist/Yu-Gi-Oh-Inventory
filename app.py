@@ -32,12 +32,12 @@ def home():
 
 @app.route("/search")
 def search():
-    query = request.args.get("q", "").strip()
+    query = request.args.get("q", "").strip().lower()
     if not query:
         return jsonify({"error": "No search query provided"}), 400
-    
+
     # Find matching cards
-    results = [card for card in cards if query.lower() in card["Card Name"].lower()]
+    results = [card for card in cards if query in card.get("Card Name", "").lower()]
     
     # If no results, try fetching from API
     if not results:
