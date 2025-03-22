@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yu-Gi-Oh! Card Search</title>
+    <script>
+        async function searchCard() {
+            let query = document.getElementById("searchInput").value.trim();
+            let resultDiv = document.getElementById("result");
+
+            if (!query) {
+                resultDiv.innerHTML = "<p>⚠️ Please enter a card name!</p>";
+                return;
+            }
+
+            let response = await fetch(`/search?q=${query}`);
+            let data = await response.json();
+
+            if (response.status === 200) {
+                resultDiv.innerHTML = `
+                    <h3>${data.name}</h3>
+                    <img src="${data.image}" alt="${data.name}" width="150">
+                    <p><strong>Type:</strong> ${data.type}</p>
+                    <p><strong>ATK:</strong> ${data.atk} | <strong>DEF:</strong> ${data.def}</p>
+                    <p><strong>Level:</strong> ${data.level}</p>
+                    <p><strong>Race:</strong> ${data.race} | <strong>Attribute:</strong> ${data.attribute}</p>
+                    <p><strong>Description:</strong> ${data.desc}</p>
+                `;
+            } else {
+                resultDiv.innerHTML = `<p>⚠️ ${data.error}</p>`;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>🔍 Search for a Yu-Gi-Oh! Card</h2>
+    <input type="text" id="searchInput" placeholder="Enter card name">
+    <button onclick="searchCard()">Search</button>
+    <div id="result"></div>
+</body>
+</html>
