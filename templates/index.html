@@ -1,45 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Yu-Gi-Oh! Inventory</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yu-Gi-Oh! Card List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        table {
+            width: 90%;
+            margin: auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+        }
+        .card-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .card-img {
+            width: 120px;
+        }
+    </style>
 </head>
 <body>
+
     <h1>Yu-Gi-Oh! Card List</h1>
-    <input type="text" id="search" placeholder="Search Card">
-    <ul id="cardList">
-        {% for card in cards %}
-        <li>
-            <h3>{{ card.name }} - {{ card.category }}</h3>
-            <p><strong>Type:</strong> {{ card.typing }}</p>
-            <p><strong>Quantity:</strong> {{ card.quantity }}</p>
-            <p><strong>Description:</strong> {{ card.desc }}</p>
-            {% if card.attack is not none and card.defense is not none %}
-                <p><strong>ATK / DEF:</strong> {{ card.attack }} / {{ card.defense }}</p>
-            {% endif %}
-            {% if card.level is not none %}
-                <p><strong>Level:</strong> {{ card.level }}</p>
-            {% endif %}
-            {% if card.attribute is not none %}
-                <p><strong>Attribute:</strong> {{ card.attribute }}</p>
-            {% endif %}
-            {% if card.race is not none %}
-                <p><strong>Race:</strong> {{ card.race }}</p>
-            {% endif %}
 
-            <!-- Display images -->
-            {% if card.image_url %}
-                <p><strong>Card Image:</strong></p>
-                <img src="{{ card.image_url }}" width="150">
-            {% endif %}
+    <input type="text" id="searchBox" placeholder="Search Card" onkeyup="searchCard()">
 
-            {% if card.image_url_png %}
-                <p><strong>PNG Version:</strong></p>
-                <img src="{{ card.image_url_png }}" width="150">
-            {% endif %}
+    <!-- Card list in table format -->
+    <table>
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>ATK / DEF</th>
+                <th>Level</th>
+                <th>Attribute</th>
+                <th>Race</th>
+            </tr>
+        </thead>
+        <tbody id="cardList">
+            {% for card in cards %}
+            <tr>
+                <td><img src="{{ card['Image URL'] }}" class="card-img" alt="Card Image"></td>
+                <td>{{ card['Card Name'] }}</td>
+                <td>{{ card['Type'] }}</td>
+                <td>{{ card['Quantity'] }}</td>
+                <td>{{ card['ATK'] }} / {{ card['DEF'] }}</td>
+                <td>{{ card['Level'] }}</td>
+                <td>{{ card['Attribute'] }}</td>
+                <td>{{ card['Race'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-            <img src="{{ card.image_url_small }}" width="50">
-        </li>
-        {% endfor %}
-    </ul>
+    <!-- Search results container -->
+    <div id="searchResults" class="card-container"></div>
+
+    <script>
+        function searchCard() {
+            let query = document.getElementById("searchBox").value.trim();
+            if (query === "") {
+                document.getElementById("searchResults").style.display = "none";
+                return;
+            }
+
+            fetch(`/search?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    let resultsDiv = document.getElementById("searchResults");
+                    resultsDiv.innerHTML = "";
+
+                    if (data.error) {
+                        resultsDiv.innerHTML = `<p>${data.error}</p>`;
+                    } else {
+                        resultsDiv.style.display = "block";
+                        data.forEach(card => {
+                            resultsDiv.innerHTML += `
+                                <div>
+                                    <img src="${card.card_images ? card.card_images[0].image_url : ''}" class="card-img">
+                                    <p><strong>${card.name || card["Card Name"]}</strong></p>
+                                    <p>Type: ${card.type}</p>
+                                    <p>ATK / DEF: ${card.atk} / ${card.def}</p>
+                                    <p>Level: ${card.level}</p>
+                                    <p>Attribute: ${card.attribute}</p>
+                                    <p>Race: ${card.race}</p>
+                                </div>
+                                <hr>
+                            `;
+                        });
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+        }
+    </script>
+
 </body>
 </html>
